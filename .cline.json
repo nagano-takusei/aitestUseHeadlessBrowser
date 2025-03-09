@@ -1,0 +1,16 @@
+{
+  "aiIntegration": {
+    "instructions": [
+      "This file is for AI (Cline) integration purposes only.",
+      "Do not include API specification details here; those should be placed in the README or in a separate .apiManifest.json file.",
+      "Retain other integration-related settings and instructions here for cline."
+    ]
+  },
+  "dependencies": [
+    "express",
+    "puppeteer",
+    "typescript",
+    "pm2"
+  ],
+  "notes": "This file contains integration information for Cline. API endpoint specifications must be maintained separately in the documentation."
+}
