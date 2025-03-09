@@ -1,0 +1,17 @@
+# Cline Rules
+
+## AI Integration Instructions
+- This file is for AI (Cline) integration purposes only.
+- Do not include API specification details here; those should be placed in the README or in a separate .apiManifest.json file.
+- Retain other integration-related settings and instructions here for cline.
+
+## Dependencies
+- express
+- puppeteer
+- typescript
+- pm2
+
+## Notes
+This file contains integration information for Cline. API endpoint specifications must be maintained separately in the documentation.  
+After editing the source code, please run 'npm run pm' to verify the operation of the target API.  
+(ソースコード編集後は必ず 'npm run pm' を実行し、対象APIの動作確認を行ってください。)
