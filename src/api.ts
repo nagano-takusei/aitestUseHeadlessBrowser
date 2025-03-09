@@ -54,7 +54,9 @@ app.post("/screenshot", asyncHandler(async (req: Request, res: Response): Promis
     fs.mkdirSync(screenshotDir);
   }
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const screenshotPath = pathModule.join(screenshotDir, `screenshot-${timestamp}.png`);
+  const viewport = page.viewport();
+  const resolutionText = viewport ? `${viewport.width}x${viewport.height}` : "unknown";
+  const screenshotPath = pathModule.join(screenshotDir, `screenshot-${timestamp}-${resolutionText}.png`);
   await page.screenshot({ path: screenshotPath });
   res.send({ message: "Screenshot saved", path: screenshotPath });
 }));

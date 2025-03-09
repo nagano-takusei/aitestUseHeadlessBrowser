@@ -10,6 +10,8 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@types/dotenv": "^6.1.1",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "puppeteer": "^24.4.0"
   },

@@ -12,5 +12,5 @@
     "typescript",
     "pm2"
   ],
-  "notes": "This file contains integration information for Cline. API endpoint specifications must be maintained separately in the documentation."
+  "notes": "This file contains integration information for Cline. API endpoint specifications must be maintained separately in the documentation. After editing the source code, please run 'npm run pm' to verify the operation of the target API. (ソースコード編集後は必ず 'npm run pm' を実行し、対象APIの動作確認を行ってください。)"
 }
