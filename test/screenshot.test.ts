@@ -1,9 +1,13 @@
 /// <reference types="jest" />
+import 'dotenv/config';
 import request from "supertest";
 
 const dummyPage: any = {
   screenshot: async ({ path }: { path: string }) => Promise.resolve(path),
-  viewport: () => ({ width: 1280, height: 720 }),
+  viewport: () => ({
+    width: Number(process.env.VIEWPORT_WIDTH) || 1280,
+    height: Number(process.env.VIEWPORT_HEIGHT) || 720
+  }),
   url: () => "https://example.com",
   content: async () => "<html></html>",
   goto: async (url: string, options: any) => { return; }
