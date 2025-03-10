@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import * as puppeteer from "puppeteer";
 import { page, initBrowser } from "./browserManager";
 
 const app = express();
@@ -102,6 +103,75 @@ app.post("/screenshot", asyncHandler(async (req: Request, res: Response): Promis
   const screenshotPath = pathModule.join(screenshotDir, `screenshot-${timestamp}-${resolutionText}.png`);
   await page.screenshot({ path: screenshotPath });
   res.send({ message: "Screenshot saved", path: screenshotPath });
+}));
+
+/**
+ * 指定した座標でマウスクリックを実行するエンドポイント
+ * 
+ * @route POST /click
+ * @param {Object} req.body - リクエストボディ
+ * @param {number} req.body.x - クリックするX座標
+ * @param {number} req.body.y - クリックするY座標
+ * @param {string} [req.body.button="left"] - マウスボタン（"left", "right", "middle"）
+ * @param {number} [req.body.clickCount=1] - クリック回数（デフォルト: 1）
+ * @returns {Object} クリック操作結果を含むJSONオブジェクト
+ * @returns {string} message - 操作結果メッセージ
+ * @returns {Object} coordinates - クリックした座標
+ * @throws {400} 座標が無効な場合
+ * @throws {500} ブラウザページが初期化されていない場合
+ */
+app.post("/click", asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  if (!page) {
+    res.status(500).send({ error: "Page not initialized yet" });
+    return;
+  }
+  
+  const { x, y, button = "left", clickCount = 1 } = req.body;
+  
+  // 座標の検証
+  if (typeof x !== "number" || typeof y !== "number" || isNaN(x) || isNaN(y)) {
+    res.status(400).send({ error: "Invalid coordinates. x and y must be numbers." });
+    return;
+  }
+  
+  // ボタンの検証
+  const validButtons = ["left", "right", "middle"];
+  if (button && !validButtons.includes(button)) {
+    res.status(400).send({ 
+      error: `Invalid button type. Must be one of: ${validButtons.join(", ")}` 
+    });
+    return;
+  }
+  
+  // クリック回数の検証
+  if (typeof clickCount !== "number" || clickCount < 1) {
+    res.status(400).send({ error: "Invalid clickCount. Must be a positive number." });
+    return;
+  }
+  
+  try {
+    // 指定座標に移動してクリック
+    await page.mouse.move(x, y);
+    await page.mouse.click(x, y, { 
+      button: button as puppeteer.MouseButton, 
+      clickCount 
+    });
+    
+    res.send({ 
+      message: `Successfully clicked at coordinates (${x}, ${y})`,
+      coordinates: { x, y },
+      details: {
+        button,
+        clickCount
+      }
+    });
+  } catch (error) {
+    console.error("Click operation failed:", error);
+    res.status(500).send({ 
+      error: "Click operation failed", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
 }));
 
 /**
