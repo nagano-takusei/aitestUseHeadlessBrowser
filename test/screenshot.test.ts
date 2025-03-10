@@ -2,6 +2,11 @@
 import 'dotenv/config';
 import request from "supertest";
 
+// モックのinstallMouseHelper関数
+jest.mock('../src/install-mouse-helper', () => ({
+  installMouseHelper: jest.fn().mockImplementation(() => Promise.resolve())
+}));
+
 const dummyPage: any = {
   screenshot: async ({ path }: { path: string }) => Promise.resolve(path),
   viewport: () => ({
@@ -19,6 +24,8 @@ let browserManager: any;
 describe("Screenshot API", () => {
   beforeEach(async () => {
     jest.resetModules();
+    // モックをリセット
+    jest.clearAllMocks();
     // Import browserManager and override page with dummyPage
     const browserModule = await import("../src/browserManager");
     browserManager = browserModule;
