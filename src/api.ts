@@ -36,20 +36,21 @@ app.get("/current-url", asyncHandler(async (req: Request, res: Response): Promis
 
 /**
  * 現在のブラウザページのHTML内容を取得するエンドポイント
+ * トークン消費が多いためコメントアウト
  * 
  * @route GET /current-content
  * @returns {Object} 現在のページのHTML内容を含むJSONオブジェクト
  * @returns {string} content - 現在のページのHTML内容
  * @throws {500} ブラウザページが初期化されていない場合
  */
-app.get("/current-content", asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  if (!page) {
-    res.status(500).send({ error: "Page not initialized yet" });
-    return;
-  }
-  const content: string = await page.content();
-  res.send({ content });
-}));
+// app.get("/current-content", asyncHandler(async (req: Request, res: Response): Promise<void> => {
+//   if (!page) {
+//     res.status(500).send({ error: "Page not initialized yet" });
+//     return;
+//   }
+//   const content: string = await page.content();
+//   res.send({ content });
+// }));
 
 /**
  * ブラウザを指定したURLに移動させるエンドポイント
