@@ -107,6 +107,158 @@ app.post("/screenshot", asyncHandler(async (req: Request, res: Response): Promis
 }));
 
 /**
+ * キーボード入力を実行するエンドポイント
+ * 
+ * @route POST /type
+ * @param {Object} req.body - リクエストボディ
+ * @param {string} req.body.text - 入力するテキスト
+ * @param {number} [req.body.delay=100] - キー入力間の遅延（ミリ秒）
+ * @param {boolean} [req.body.useClipboard=false] - クリップボード貼り付けを使用するかどうか
+ * @returns {Object} 入力操作結果を含むJSONオブジェクト
+ * @returns {string} message - 操作結果メッセージ
+ * @returns {string} text - 入力したテキスト
+ * @throws {400} テキストが無効な場合
+ * @throws {500} ブラウザページが初期化されていない場合
+ */
+app.post("/type", asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  if (!page) {
+    res.status(500).send({ error: "Page not initialized yet" });
+    return;
+  }
+  
+  const { text, delay = 100, useClipboard = false } = req.body;
+  
+  // テキストの検証
+  if (!text || typeof text !== "string") {
+    res.status(400).send({ error: "Invalid text. Text must be a non-empty string." });
+    return;
+  }
+  
+  try {
+    if (useClipboard) {
+      // 入力フィールドに直接値を設定（ユーザーがコピペしたような挙動）
+      await page.evaluate((inputText) => {
+        // アクティブな要素が入力フィールドの場合、その値を設定
+        const activeElement = document.activeElement as HTMLInputElement;
+        if (activeElement && 'value' in activeElement) {
+          activeElement.value = inputText;
+          
+          // 入力イベントを発火させて、Googleの検索候補などが表示されるようにする
+          const inputEvent = new Event('input', { bubbles: true });
+          activeElement.dispatchEvent(inputEvent);
+          
+          // changeイベントも発火させる
+          const changeEvent = new Event('change', { bubbles: true });
+          activeElement.dispatchEvent(changeEvent);
+        }
+      }, text);
+    } else {
+      // 通常のキーボード入力
+      await page.keyboard.type(text, { delay: delay });
+    }
+    
+    res.send({ 
+      message: "Successfully typed text",
+      text: text,
+      method: useClipboard ? "clipboard" : "keyboard"
+    });
+  } catch (error) {
+    console.error("Keyboard typing operation failed:", error);
+    res.status(500).send({ 
+      error: "Keyboard typing operation failed", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}));
+
+/**
+ * 特定のキーを押すエンドポイント
+ * 
+ * @route POST /press-key
+ * @param {Object} req.body - リクエストボディ
+ * @param {string} req.body.key - 押すキー（例: "Enter", "Escape", "ArrowDown"など）
+ * @returns {Object} キー操作結果を含むJSONオブジェクト
+ * @returns {string} message - 操作結果メッセージ
+ * @returns {string} key - 押されたキー
+ * @throws {400} キーが無効な場合
+ * @throws {500} ブラウザページが初期化されていない場合
+ */
+app.post("/press-key", asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  if (!page) {
+    res.status(500).send({ error: "Page not initialized yet" });
+    return;
+  }
+  
+  const { key } = req.body;
+  
+  // キーの検証
+  if (!key || typeof key !== "string") {
+    res.status(400).send({ error: "Invalid key. Key must be a non-empty string." });
+    return;
+  }
+  
+  try {
+    // Puppeteer expects specific key values
+    await page.keyboard.press(key as puppeteer.KeyInput);
+    
+    res.send({ 
+      message: `Successfully pressed key: ${key}`,
+      key: key
+    });
+  } catch (error) {
+    console.error("Key press operation failed:", error);
+    res.status(500).send({ 
+      error: "Key press operation failed", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}));
+
+/**
+ * 指定した座標にマウスカーソルを移動するエンドポイント
+ * 
+ * @route POST /move-mouse
+ * @param {Object} req.body - リクエストボディ
+ * @param {number} req.body.x - 移動先のX座標
+ * @param {number} req.body.y - 移動先のY座標
+ * @returns {Object} マウス移動結果を含むJSONオブジェクト
+ * @returns {string} message - 操作結果メッセージ
+ * @returns {Object} coordinates - 移動先の座標
+ * @throws {400} 座標が無効な場合
+ * @throws {500} ブラウザページが初期化されていない場合
+ */
+app.post("/move-mouse", asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  if (!page) {
+    res.status(500).send({ error: "Page not initialized yet" });
+    return;
+  }
+  
+  const { x, y } = req.body;
+  
+  // 座標の検証
+  if (typeof x !== "number" || typeof y !== "number" || isNaN(x) || isNaN(y)) {
+    res.status(400).send({ error: "Invalid coordinates. x and y must be numbers." });
+    return;
+  }
+  
+  try {
+    // 指定座標にマウスカーソルを移動
+    await page.mouse.move(x, y);
+    
+    res.send({ 
+      message: `Successfully moved mouse to coordinates (${x}, ${y})`,
+      coordinates: { x, y }
+    });
+  } catch (error) {
+    console.error("Mouse move operation failed:", error);
+    res.status(500).send({ 
+      error: "Mouse move operation failed", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+}));
+
+/**
  * 指定した座標でマウスクリックを実行するエンドポイント
  * 
  * @route POST /click
@@ -189,4 +341,5 @@ if (process.env.NODE_ENV !== "test") {
     process.exit(1);
   });
 }
+
 export default app;
