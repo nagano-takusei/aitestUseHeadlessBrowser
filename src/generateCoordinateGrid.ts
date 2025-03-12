@@ -64,11 +64,11 @@ export async function generateCoordinateGrid(
   
   // 出力パスが指定されていない場合はデフォルトのパスを使用
   if (!outputPath) {
-    const dir = path.join(process.cwd(), 'screenShot');
+    const dir = path.join(process.cwd(), 'gridImage');
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    outputPath = path.join(dir, `grid-${width}x${height}-${gridSize}px.png`);
+    outputPath = path.join(dir, `grid${width}x${height}.png`);
   }
   
   // PNGとして保存
