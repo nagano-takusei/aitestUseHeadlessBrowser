@@ -46,3 +46,7 @@ Thumbs.db
 .git_changes.txt
 
 screenShot/*
+
+# Cache and grid image directories
+.cache/
+gridImage/
