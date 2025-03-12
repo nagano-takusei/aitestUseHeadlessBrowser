@@ -9,13 +9,15 @@ import * as path from 'path';
  * @param height - 画像の高さ（ピクセル）
  * @param gridSize - グリッドのサイズ（ピクセル）
  * @param outputPath - 出力ファイルのパス
+ * @param showGridLines - グリッド線を表示するかどうか（デフォルト: true）
  * @returns 生成された画像のパス
  */
 export async function generateCoordinateGrid(
   width: number = 1280,
   height: number = 720,
   gridSize: number = 100,
-  outputPath?: string
+  outputPath?: string,
+  showGridLines: boolean = true
 ): Promise<string> {
   // キャンバスを作成
   const canvas = createCanvas(width, height);
@@ -24,24 +26,26 @@ export async function generateCoordinateGrid(
   // 背景を透明に設定
   ctx.clearRect(0, 0, width, height);
   
-  // グリッド線を描画
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-  ctx.lineWidth = 1;
-  
-  // 横線
-  for (let y = 0; y <= height; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
-  
-  // 縦線
-  for (let x = 0; x <= width; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
+  // グリッド線を描画（showGridLinesがtrueの場合のみ）
+  if (showGridLines) {
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.lineWidth = 1;
+    
+    // 横線
+    for (let y = 0; y <= height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+    
+    // 縦線
+    for (let x = 0; x <= width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
   }
   
   // 座標値を描画
@@ -50,10 +54,10 @@ export async function generateCoordinateGrid(
   
   for (let x = 0; x < width; x += gridSize) {
     for (let y = 0; y < height; y += gridSize) {
-      // 座標点にマーカーを描画
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+      // 座標点にマーカーを描画（赤い点）
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
       ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
       ctx.fill();
       
       // 座標値を描画
@@ -88,8 +92,9 @@ if (require.main === module) {
   const width = parseInt(args[0]) || 1280;
   const height = parseInt(args[1]) || 720;
   const gridSize = parseInt(args[2]) || 100;
+  const showGridLines = args[3] === 'false' ? false : true;
   
-  generateCoordinateGrid(width, height, gridSize)
+  generateCoordinateGrid(width, height, gridSize, undefined, showGridLines)
     .then(path => console.log(`Grid image saved to: ${path}`))
     .catch(err => console.error('Error generating grid image:', err));
 }
