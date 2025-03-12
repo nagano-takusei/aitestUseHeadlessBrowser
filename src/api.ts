@@ -1,6 +1,10 @@
 import express, { Request, Response } from "express";
 import * as puppeteer from "puppeteer";
 import { page, initBrowser } from "./browserManager";
+import * as fs from "fs";
+import * as pathModule from "path";
+import { CACHE_DIR, RAW_IMAGE_FILENAME } from "./constants";
+import { spawn } from "child_process";
 
 const app = express();
 app.use(express.json());
@@ -92,18 +96,109 @@ app.post("/screenshot", asyncHandler(async (req: Request, res: Response): Promis
     res.status(500).send({ error: "Page not initialized yet" });
     return;
   }
-  const fs = await import("fs");
-  const pathModule = await import("path");
-  const screenshotDir = pathModule.join(process.cwd(), "screenShot");
+  // Using top-level imported fs, pathModule, and constants.
+  const screenshotDir = pathModule.join(process.cwd(), CACHE_DIR);
   if (!fs.existsSync(screenshotDir)) {
-    fs.mkdirSync(screenshotDir);
+    fs.mkdirSync(screenshotDir, { recursive: true });
   }
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const viewport = page.viewport();
   const resolutionText = viewport ? `${viewport.width}x${viewport.height}` : "unknown";
-  const screenshotPath = pathModule.join(screenshotDir, `screenshot-${timestamp}-${resolutionText}.png`);
+  const screenshotPath = pathModule.join(screenshotDir, RAW_IMAGE_FILENAME(resolutionText, timestamp));
   await page.screenshot({ path: screenshotPath });
   res.send({ message: "Screenshot saved", path: screenshotPath });
+}));
+
+/**
+ * スクリーンショットを撮影し、グリッドを重ねた画像を生成するエンドポイント
+ * 
+ * @route POST /screenshot-with-grid
+ * @param {Object} req.body - リクエストボディ
+ * @param {number} [req.body.x] - マウスカーソルのX座標（デフォルト: 画面中央）
+ * @param {number} [req.body.y] - マウスカーソルのY座標（デフォルト: 画面中央）
+ * @returns {Object} グリッド付きスクリーンショット保存結果を含むJSONオブジェクト
+ * @returns {string} message - 操作結果メッセージ
+ * @returns {string} path - 保存されたグリッド付きスクリーンショットのファイルパス
+ * @throws {500} ブラウザページが初期化されていない場合
+ */
+app.post("/screenshot-with-grid", asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  if (!page) {
+    res.status(500).send({ error: "Page not initialized yet" });
+    return;
+  }
+  
+  const viewport = page.viewport();
+  if (!viewport) {
+    res.status(500).send({ error: "Viewport not available" });
+    return;
+  }
+  
+  // デフォルトでは画面中央にマウスを移動
+  const x = req.body.x !== undefined ? req.body.x : Math.floor(viewport.width / 2);
+  const y = req.body.y !== undefined ? req.body.y : Math.floor(viewport.height / 2);
+  
+  // マウスを指定位置に移動
+  await page.mouse.move(x, y);
+  
+  // スクリーンショットを撮影
+  const screenshotDir = pathModule.join(process.cwd(), CACHE_DIR);
+  if (!fs.existsSync(screenshotDir)) {
+    fs.mkdirSync(screenshotDir, { recursive: true });
+  }
+  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const resolutionText = `${viewport.width}x${viewport.height}`;
+  const screenshotPath = pathModule.join(screenshotDir, RAW_IMAGE_FILENAME(resolutionText, timestamp));
+  
+  await page.screenshot({ path: screenshotPath });
+  
+  // グリッドを重ねた画像を生成
+  try {
+    const combineProcess = spawn('npx', [
+      'ts-node', 
+      'src/combineGridImage.ts', 
+      viewport.width.toString(), 
+      viewport.height.toString(), 
+      timestamp
+    ]);
+    
+    let outputPath = '';
+    
+    combineProcess.stdout.on('data', (data) => {
+      // 最後の行だけを取得（"Combined image saved to: "の行は無視）
+      const lines = data.toString().trim().split('\n');
+      const lastLine = lines[lines.length - 1];
+      if (!lastLine.includes('Combined image saved to:')) {
+        outputPath = lastLine;
+      }
+    });
+    
+    await new Promise<void>((resolve, reject) => {
+      combineProcess.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Process exited with code ${code}`));
+        }
+      });
+      
+      combineProcess.on('error', (err) => {
+        reject(err);
+      });
+    });
+    
+    res.send({ 
+      message: "Screenshot with grid saved", 
+      path: outputPath,
+      coordinates: { x, y }
+    });
+  } catch (error) {
+    console.error("Error generating grid image:", error);
+    res.status(500).send({ 
+      error: "Failed to generate grid image", 
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
 }));
 
 /**
